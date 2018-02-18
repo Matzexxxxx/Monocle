@@ -69,12 +69,12 @@ def light():
     if is_service_alive():
         if conf.CLEANUP_RAIDS_OLDER_THAN_X_HR > 0:
             cleanup_with_temp_table("raids", now - (conf.CLEANUP_RAIDS_OLDER_THAN_X_HR * 3600), time_col="time_spawn")
+        if conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR > 0 or conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR > 0:
+            cleanup_with_temp_table("gym_history_defenders", now - (min(conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR, conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR) * 3600), time_col="created")
         if conf.CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR > 0:
             cleanup_with_temp_table("fort_sightings", now - (conf.CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR * 3600))
         if conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR > 0 :
             cleanup_with_temp_table("gym_defenders", now - (conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR * 3600), time_col="created")
-        if conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR > 0 or conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR > 0:
-            cleanup_with_temp_table("gym_history_defenders", now - (min(conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR, conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR) * 3600), time_col="created")
         if conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR > 0:
             cleanup_with_temp_table("mystery_sightings", now - (conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR * 3600), time_col="first_seen")
         if conf.CLEANUP_SIGHTINGS_OLDER_THAN_X_HR > 0:
