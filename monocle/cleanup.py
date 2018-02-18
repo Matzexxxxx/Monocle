@@ -8,7 +8,7 @@ from .shared import get_logger
 from . import sanitized as conf
 
 log = get_logger(__name__)
-    
+
 db_dialect = None
 
 if isinstance(_engine.dialect, MySQLDialect_mysqldb):
@@ -38,7 +38,7 @@ def cleanup_with_temp_table(table, time, limit=conf.CLEANUP_LIMIT, time_col="upd
           SELECT t.id
           FROM {} t
           WHERE t.{} IS NULL OR t.{} < :time
-          LIMIT :limit 
+          LIMIT :limit
         )""".format(table, table, time_col, time_col), {
             'time': time,
             'limit': limit,
@@ -56,10 +56,10 @@ def is_service_alive():
 
     with session_scope(autoflush=True) as session:
         last_updated = session.query(func.max(FortSighting.updated)).first()[0]
-        last_updated = last_updated if last_updated else 0 
+        last_updated = last_updated if last_updated else 0
         if last_updated > thirty_min_ago:
-            return True 
-    return False 
+            return True
+    return False
 
 
 def light():
@@ -71,6 +71,10 @@ def light():
             cleanup_with_temp_table("raids", now - (conf.CLEANUP_RAIDS_OLDER_THAN_X_HR * 3600), time_col="time_spawn")
         if conf.CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR > 0:
             cleanup_with_temp_table("fort_sightings", now - (conf.CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR * 3600))
+        if conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR > 0 :
+            cleanup_with_temp_table("gym_defenders", now - (conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR * 3600), time_col="created")
+        if conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR > 0 or conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR > 0:
+            cleanup_with_temp_table("gym_history_defenders", now - (min(conf.CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR, conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR) * 3600), time_col="created")
         if conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR > 0:
             cleanup_with_temp_table("mystery_sightings", now - (conf.CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR * 3600), time_col="first_seen")
         if conf.CLEANUP_SIGHTINGS_OLDER_THAN_X_HR > 0:

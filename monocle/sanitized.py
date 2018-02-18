@@ -40,6 +40,7 @@ _valid_types = {
     'CLEANUP_SIGHTINGS_OLDER_THAN_X_HR': Number,
     'CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR': Number,
     'CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR': Number,
+    'CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR': Number,
     'COMPLETE_TUTORIAL': bool,
     'COROUTINES_LIMIT': int,
     'DB': dict,
@@ -191,7 +192,7 @@ _valid_types = {
     'WEBHOOKS': set_sequence,
     'WEATHER_STATUS': dict,
     'WEBHOOK_GYM_MAPPING': dict,
-    'WEBHOOK_RAID_MAPPING': dict, 
+    'WEBHOOK_RAID_MAPPING': dict,
 }
 
 _defaults = {
@@ -216,6 +217,7 @@ _defaults = {
     'CLEANUP_SIGHTINGS_OLDER_THAN_X_HR': 4.0,
     'CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR': 4.0,
     'CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR': 48.0,
+    'CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR': 12.0,
     'COMPLETE_TUTORIAL': False,
     'CONTROL_SOCKS': None,
     'COROUTINES_LIMIT': worker_count,

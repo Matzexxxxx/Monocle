@@ -31,7 +31,7 @@ if conf.DB_ENGINE.startswith('mysql'):
     MEDIUM_TYPE = MEDIUMINT(unsigned=True)      # 0 to 4294967295
     UNSIGNED_HUGE_TYPE = BIGINT(unsigned=True)           # 0 to 18446744073709551615
     HUGE_TYPE = BigInteger
-    PRIMARY_HUGE_TYPE = HUGE_TYPE 
+    PRIMARY_HUGE_TYPE = HUGE_TYPE
     FLOAT_TYPE = DOUBLE(precision=18, scale=14, asdecimal=False)
     LONG_TEXT = LONGTEXT
 elif conf.DB_ENGINE.startswith('postgres'):
@@ -59,7 +59,7 @@ elif conf.DB_ENGINE.startswith('postgres'):
     MEDIUM_TYPE = Integer                       # -2147483648 to 2147483647
     UNSIGNED_HUGE_TYPE = NumInt(precision=20, scale=0)   # up to 20 digits
     HUGE_TYPE = BigInteger
-    PRIMARY_HUGE_TYPE = HUGE_TYPE 
+    PRIMARY_HUGE_TYPE = HUGE_TYPE
     FLOAT_TYPE = DOUBLE_PRECISION(asdecimal=False)
     LONG_TEXT = TEXT
 else:
@@ -77,7 +77,7 @@ else:
     MEDIUM_TYPE = Integer
     UNSIGNED_HUGE_TYPE = TextInt
     HUGE_TYPE = Integer
-    PRIMARY_HUGE_TYPE = HUGE_TYPE 
+    PRIMARY_HUGE_TYPE = HUGE_TYPE
     FLOAT_TYPE = Float(asdecimal=False)
 
 
@@ -248,7 +248,7 @@ class RaidCache:
                 r['pokemon_id'] = raid.pokemon_id
                 self.add(r)
             log.info("Preloaded {} raids", len(self))
-            
+
 
 
 class FortCache:
@@ -514,6 +514,7 @@ class FortSighting(Base):
     slots_available = Column(SmallInteger)
     is_in_battle = Column(Boolean, default=False)
     updated = Column(Integer,default=time,onupdate=time)
+    total_cp = Column(SmallInteger)
 
     __table_args__ = (
         UniqueConstraint(
@@ -534,6 +535,7 @@ class GymDefender(Base):
     owner_name = Column(String(128))
     nickname = Column(String(128))
     cp = Column(Integer)
+    cp_now = Column(Integer)
     stamina = Column(Integer)
     stamina_max = Column(Integer)
     atk_iv = Column(SmallInteger)
@@ -546,6 +548,26 @@ class GymDefender(Base):
     battles_defended = Column(Integer)
     num_upgrades = Column(SmallInteger)
     created = Column(Integer, index=True)
+    owner_level = Column(SmallInteger)
+    deployment_time = Column(SmallInteger)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'external_id',
+            name='external_id_unique'
+        ),
+    )
+
+class GymHistoryDefender(Base):
+    __tablename__ = 'gym_history_defenders'
+
+    id = Column(PRIMARY_HUGE_TYPE, primary_key=True)
+    fort_id = Column(Integer, ForeignKey('forts.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False, index=True)
+    defender_id = Column(UNSIGNED_HUGE_TYPE, ForeignKey('gym_defenders.external_id', onupdate="CASCADE", ondelete="CASCADE"), nullable=True, index=True)
+    date = Column(Integer, nullable=False)
+    created = Column(Integer)
+    cp = Column(SmallInteger, nullable=False)
+
 
 class Pokestop(Base):
     __tablename__ = 'pokestops'
@@ -636,18 +658,49 @@ def add_sighting(session, pokemon):
         if spawnpoint:
             spawnpoint.failures = 0
 
+def add_gym_defender_history(session, fort_internal_id, fort_last_modified, defender_id, cp):
+    histID = session.query(GymHistoryDefender.id) \
+                .filter(GymHistoryDefender.defender_id == defender_id) \
+                .filter(GymHistoryDefender.fort_id == fort_internal_id) \
+                .filter(GymHistoryDefender.date == fort_last_modified) \
+                .scalar()
+    hist = GymHistoryDefender(
+        id = histID,
+        fort_id = fort_internal_id,
+        defender_id = defender_id,
+        date = fort_last_modified,
+        created = int(time()),
+        cp = cp
+    )
+    session.merge(hist)
 
-def add_gym_defenders(session, fort_internal_id, gym_defenders, raw_fort):
-        
-    session.query(GymDefender).filter(GymDefender.fort_id==fort_internal_id).delete()
+
+def add_gym_defenders(session, fort_internal_id, fort_last_modified, gym_defenders, raw_fort):
+
+    if conf.KEEP_GYM_HISTORY:
+        session.query(GymDefender). \
+            filter(GymDefender.fort_id==fort_internal_id). \
+            update({
+                'fort_id': None
+            })
+    else:
+        session.query(GymDefender).filter(GymDefender.fort_id==fort_internal_id).delete()
 
     for gym_defender in gym_defenders:
+
+        if conf.KEEP_GYM_HISTORY:
+            objID = session.query(GymDefender.id).filter(GymDefender.external_id == gym_defender['external_id']).scalar()
+        else:
+            objID = None
+
         obj = GymDefender(
+            id=objID,
             fort_id=fort_internal_id,
             external_id=gym_defender['external_id'],
             pokemon_id=gym_defender['pokemon_id'],
             owner_name=gym_defender['owner_name'],
             nickname=gym_defender['nickname'],
+            cp_now=gym_defender['cp_now'],
             cp=gym_defender['cp'],
             stamina=gym_defender['stamina'],
             stamina_max=gym_defender['stamina_max'],
@@ -660,6 +713,8 @@ def add_gym_defenders(session, fort_internal_id, gym_defenders, raw_fort):
             battles_defended=gym_defender['battles_defended'],
             num_upgrades=gym_defender['num_upgrades'],
             created=int(time()),
+            owner_level=gym_defender['owner_level'],
+            deployment_time=gym_defender['deployment_time'],
         )
         team = raw_fort.get('team')
         if team is not None:
@@ -667,7 +722,11 @@ def add_gym_defenders(session, fort_internal_id, gym_defenders, raw_fort):
         last_modified = raw_fort.get('last_modified')
         if last_modified is not None:
             obj.last_modified = last_modified
-        session.add(obj)
+
+        if conf.KEEP_GYM_HISTORY:
+            session.merge(obj)
+        else:
+            session.add(obj)
 
 
 
@@ -716,7 +775,7 @@ def add_spawnpoint(session, pokemon):
 
 
 def touch_spawnpoint(session, spawn_id):
-    if spawn_id in spawns.internal_ids: 
+    if spawn_id in spawns.internal_ids:
         internal_id = spawns.internal_ids[spawn_id]
     else:
         internal_id = session.query(Spawnpoint.id) \
@@ -796,7 +855,7 @@ def get_fort_internal_id(session, external_id):
         internal_id = session.query(Fort.id) \
             .filter(Fort.external_id == external_id) \
             .scalar()
-        FORT_CACHE.internal_ids[external_id] = internal_id 
+        FORT_CACHE.internal_ids[external_id] = internal_id
     return internal_id
 
 
@@ -833,14 +892,14 @@ def add_fort_sighting(session, raw_fort):
         session.add(fort)
         session.flush()
         internal_id = fort.id
-        FORT_CACHE.internal_ids[external_id] = internal_id 
+        FORT_CACHE.internal_ids[external_id] = internal_id
         FORT_CACHE.sponsors[external_id] = sponsor
         fort_updated = True
 
 
     if external_id not in FORT_CACHE.gyms:
         FORT_CACHE.add(raw_fort)
-      
+
     if FORT_CACHE.gyms[external_id]['weather_cell_id'] is None and raw_fort.get('weather_cell_id'):
         session.query(Fort) \
             .filter(Fort.id == internal_id) \
@@ -864,19 +923,49 @@ def add_fort_sighting(session, raw_fort):
             (fort_updated or
                 external_id not in FORT_CACHE.gym_info or
                 FORT_CACHE.gym_info[external_id] == True)):
-        FORT_CACHE.gym_info[external_id] = (raw_fort['name'], raw_fort['url'], raw_fort.get('sponsor')) 
-    
+        FORT_CACHE.gym_info[external_id] = (raw_fort['name'], raw_fort['url'], raw_fort.get('sponsor'))
+
     if sponsor != FORT_CACHE.sponsors.get(external_id):
         session.query(Fort) \
                 .filter(Fort.id == internal_id) \
                 .update({'sponsor': sponsor})
         FORT_CACHE.sponsors[external_id] = sponsor
-    
+
     if 'gym_defenders' in raw_fort and len(raw_fort['gym_defenders']) > 0:
-        add_gym_defenders(session, internal_id, raw_fort['gym_defenders'], raw_fort)
+        add_gym_defenders(session, internal_id, raw_fort['last_modified'], raw_fort['gym_defenders'], raw_fort)
 
     if conf.KEEP_GYM_HISTORY:
         fort_sighting = None
+        session.flush()
+        histID = session.query(GymHistoryDefender.id) \
+                .filter(GymHistoryDefender.defender_id != None) \
+                .filter(GymHistoryDefender.fort_id == internal_id) \
+                .filter(GymHistoryDefender.date == raw_fort['last_modified']) \
+                .all()
+        if histID is None or len(histID) == 0:
+            if 'gym_defenders' in raw_fort and len(raw_fort['gym_defenders']) > 0:
+                session.query(GymHistoryDefender) \
+                        .filter(GymHistoryDefender.defender_id == None) \
+                        .filter(GymHistoryDefender.fort_id == internal_id) \
+                        .filter(GymHistoryDefender.date == raw_fort['last_modified']) \
+                        .delete()
+                for gym_defender in raw_fort['gym_defenders']:
+                    add_gym_defender_history(session, internal_id, raw_fort['last_modified'], gym_defender['external_id'], gym_defender['cp_now'])
+            else:
+                histID = session.query(GymHistoryDefender) \
+                        .filter(GymHistoryDefender.defender_id == None) \
+                        .filter(GymHistoryDefender.fort_id == internal_id) \
+                        .filter(GymHistoryDefender.date == raw_fort['last_modified']) \
+                        .scalar()
+                if histID is None:
+                    add_gym_defender_history(session, internal_id, raw_fort['last_modified'], None, 0)
+
+        fort_sighting = session.query(FortSighting) \
+                .filter(FortSighting.fort_id == internal_id) \
+                .filter(FortSighting.last_modified == raw_fort['last_modified']) \
+                .order_by(desc(FortSighting.id)) \
+                .first()
+
     else:
         fort_sighting = session.query(FortSighting) \
                 .filter(FortSighting.fort_id==internal_id) \
@@ -885,14 +974,15 @@ def add_fort_sighting(session, raw_fort):
 
     if not fort_sighting:
         fort_sighting = FortSighting()
-    
-    fort_sighting.fort_id = internal_id 
+
+    fort_sighting.fort_id = internal_id
     fort_sighting.team = raw_fort['team']
     fort_sighting.guard_pokemon_id = raw_fort['guard_pokemon_id']
     fort_sighting.last_modified = raw_fort['last_modified']
     fort_sighting.slots_available = raw_fort['slots_available']
     fort_sighting.is_in_battle = raw_fort['is_in_battle']
     fort_sighting.updated = int(time())
+    fort_sighting.total_cp = raw_fort['total_cp']
 
     session.merge(fort_sighting)
 
@@ -925,7 +1015,7 @@ def add_raid(session, raw_raid):
 
         if not raid:
             raid = Raid()
-    
+
         raid.external_id = raw_raid['external_id']
         raid.fort_id = fort_id
         raid.level = raw_raid['level']
@@ -940,7 +1030,7 @@ def add_raid(session, raw_raid):
         session.merge(raid)
         touch_fort_sighting(session, fort_id)
 
-        
+
 def touch_fort_sighting(session, fort_id):
     fort_sighting = session.query(FortSighting) \
             .filter(FortSighting.fort_id==fort_id) \
@@ -960,7 +1050,7 @@ def add_pokestop(session, raw_pokestop):
         if pokestop_id in FORT_CACHE.pokestop_names:
             return
         elif raw_pokestop['name'] is None:
-            return 
+            return
 
     pokestop = session.query(Pokestop) \
         .filter(Pokestop.external_id == pokestop_id) \
@@ -1289,4 +1379,3 @@ def get_all_spawn_coords(session, pokemon_id=None):
     if conf.REPORT_SINCE:
         points = points.filter(Sighting.expire_timestamp > SINCE_TIME)
     return points.all()
-

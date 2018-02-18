@@ -130,8 +130,8 @@ SKIP_SPAWN = 1500      # don't even try to find a worker for a spawn if the spaw
 # Monocle defaults to scan.log plus 4 for a total of 5
 #LOGGED_FILES = 4
 
-# Allows you to specify size for log files to keep 
-# Monocle defaults to scan.log 
+# Allows you to specify size for log files to keep
+# Monocle defaults to scan.log
 #LOGGED_SIZE = 500000
 
 # Limit the number of simultaneous logins to this many at a time.
@@ -173,7 +173,7 @@ SEARCH_SLEEP = 2.5
 #
 #GO_HASH_KEY = 'YOURGOHASHKEY' # edit with your Gohash key
 #
-### Gohash endpoint 
+### Gohash endpoint
 #GOHASH_ENDPOINT="http://hash.gomanager.biz"
 
 # Skip PokéStop spinning and egg incubation if your request rate is too high
@@ -210,7 +210,7 @@ SPIN_COOLDOWN = 300    # spin only one PokéStop every n seconds (default 300)
 ## Gyms
 
 ### Toggles scanning for gym names.
-#GYM_NAMES = True 
+#GYM_NAMES = True
 
 ### Toggles scanning gyms for gym_defenders.
 ### Set this to False if you want to call GYM_GET_INFO RPC only for gym names.
@@ -232,7 +232,7 @@ ITEM_LIMITS = {
     202:  5,  # Max Revive
     301:  5,  # Lucky Egg
     401:  5,  # Incense
-    501:  5,  # Lure Module 
+    501:  5,  # Lure Module
     701:  5,  # Razz Berry
     702:  5,  # Bluk Berry
     703:  5,  # Nanab Berry
@@ -262,7 +262,7 @@ LOGIN_TIMEOUT = 2.5
 # Set to True to kill the scanner when a newer version is forced
 #FORCED_KILL = False
 
-### Exclude these Pokémon from the map by default (only visible in trash layer) 
+### Exclude these Pokémon from the map by default (only visible in trash layer)
 ### DB insert is not affected. The will still be inserted to DB as normal. See NO_DB_INSERT_IDS config below.
 TRASH_IDS = (
     16, 19, 21, 29, 32, 41, 46, 48, 50, 52, 56, 74, 77, 96, 111, 133,
@@ -311,7 +311,7 @@ MAP_WORKERS = True
 LAST_MIGRATION = 1481932800  # Dec. 17th, 2016
 
 # Treat a spawn point's expiration time as unknown if nothing is seen at it on more than x consecutive visits
-#FAILURES_ALLOWED = 3 
+#FAILURES_ALLOWED = 3
 
 ## Map data provider and appearance, previews available at:
 ## https://leaflet-extras.github.io/leaflet-providers/preview/
@@ -735,12 +735,12 @@ MINIMUM_SCORE = 0.4  # the required score after FULL_TIME seconds have passed
 
 ####
 ### PgScout (Credit to Avatar690)
-## MUST MATCH YOUR PGSCOUT CONFIG.JSON.  Will encounter based on ENCOUNTER_IDs above.  
+## MUST MATCH YOUR PGSCOUT CONFIG.JSON.  Will encounter based on ENCOUNTER_IDs above.
 ## If encounter fails, worker.py will attempt to encounter with the running acount (if lv > 30)
 ## If it fails, sighting will be saved without additional encounter info.
 
 ### Enter in your address for PGSCOUT hook endpoint including hostname, port (if any) and path.
-### If set to a url, PGSCOUT will be used. If None, normal Monocle encounter will be used. 
+### If set to a url, PGSCOUT will be used. If None, normal Monocle encounter will be used.
 #
 #PGSCOUT_ENDPOINT = None
 #
@@ -754,7 +754,7 @@ MINIMUM_SCORE = 0.4  # the required score after FULL_TIME seconds have passed
 ## Going too high will certainly guarantee a response from a Scout but will lead to greater inefficiency
 ## and instability for Monocle
 #
-#PGSCOUT_TIMEOUT = 40 
+#PGSCOUT_TIMEOUT = 40
 #
 
 
@@ -766,7 +766,7 @@ MINIMUM_SCORE = 0.4  # the required score after FULL_TIME seconds have passed
 #
 ### If True, new sightings inserted. Else, existing sighting for the same spawnpoint will be updated (if found).
 ### Default is True
-#KEEP_SPAWNPOINT_HISTORY = True 
+#KEEP_SPAWNPOINT_HISTORY = True
 
 
 ### Cleanup
@@ -777,8 +777,8 @@ MINIMUM_SCORE = 0.4  # the required score after FULL_TIME seconds have passed
 # CLEANUP_RAIDS_OLDER_THAN_X_HR = 6.0
 # CLEANUP_SIGHTINGS_OLDER_THAN_X_HR = 6.0
 # CLEANUP_FORT_SIGHTINGS_OLDER_THAN_X_HR = 6.0
+# CLEANUP_GYM_DEFENDERS_OLDER_THAN_X_HR = 12.0
 # CLEANUP_MYSTERY_SIGHTINGS_OLDER_THAN_X_HR = 24.0
 
 ### Discord webhook url for sending scan log messages
 #SCAN_LOG_WEBHOOK = None
-
